@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Löparkalkylator - km/h, Tempo & Sluttider</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 450px;
+            width: 100%;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #666;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: #007bff;
+        }
+
+        .pace-inputs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pace-inputs span {
+            font-weight: bold;
+            color: #666;
+        }
+
+        .times-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .time-card {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .time-card-title {
+            font-size: 13px;
+            color: #6c757d;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+
+        .time-card-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Löparkalkylator</h2>
+        
+        <!-- Input Hastighet -->
+        <div class="input-group">
+            <label for="kmh">Hastighet (km/h):</label>
+            <input type="number" id="kmh" placeholder="T.ex. 12" step="any" min="0.1" oninput="franKmh()">
+        </div>
+
+        <!-- Input Tempo (Minuter + Sekunder) -->
+        <div class="input-group">
+            <label>Tempo (min/km):</label>
+            <div class="pace-inputs">
+                <input type="number" id="paceMin" placeholder="Min" min="0" oninput="franTempo()">
+                <span>:</span>
+                <input type="number" id="paceSek" placeholder="Sek" min="0" max="59" oninput="franTempo()">
+            </div>
+        </div>
+
+        <!-- Sluttider -->
+        <div class="times-grid">
+            <div class="time-card">
+                <div class="time-card-title">5 km</div>
+                <div class="time-card-value" id="tid5k">--:--</div>
+            </div>
+            <div class="time-card">
+                <div class="time-card-title">10 km</div>
+                <div class="time-card-value" id="tid10k">--:--</div>
+            </div>
+            <div class="time-card">
+                <div class="time-card-title">Halvmaraton</div>
+                <div class="time-card-value" id="tidHalv">--:--</div>
+            </div>
+            <div class="time-card">
+                <div class="time-card-title">Maraton</div>
+                <div class="time-card-value" id="tidHel">--:--</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Körs när användaren ändrar i km/h-fältet
+        function franKmh() {
+            const kmhVal = parseFloat(document.getElementById('kmh').value);
+
+            if (!kmhVal || kmhVal <= 0) {
+                document.getElementById('paceMin').value = "";
+                document.getElementById('paceSek').value = "";
+                nollstallTider();
+                return;
+            }
+
+            // Räkna ut tempo i sekunder per km
+            const totalaSekunderPerKm = (3600 / kmhVal);
+            const minuter = Math.floor(totalaSekunderPerKm / 60);
+            const sekunder = Math.round(totalaSekunderPerKm % 60);
+
+            // Hantera avrundning uppåt till 60 sekunder
+            if (sekunder === 60) {
+                document.getElementById('paceMin').value = minuter + 1;
+                document.getElementById('paceSek').value = 0;
+            } else {
+                document.getElementById('paceMin').value = minuter;
+                document.getElementById('paceSek').value = sekunder;
+            }
+
+            uppdateraSluttider(kmhVal);
+        }
+
+        // Körs när användaren ändrar i Tempo-fälten (minuter/sekunder)
+        function franTempo() {
+            const min = parseInt(document.getElementById('paceMin').value) || 0;
+            const sek = parseInt(document.getElementById('paceSek').value) || 0;
+
+            const totalaSekunderPerKm = (min * 60) + sek;
+
+            if (totalaSekunderPerKm <= 0) {
+                document.getElementById('kmh').value = "";
+                nollstallTider();
+                return;
+            }
+
+            // Räkna ut km/h (3600 sekunder på en timme / sekunder per km)
+            const kmh = 3600 / totalaSekunderPerKm;
+            
+            // Uppdatera km/h-fältet (avrundat till 2 decimaler)
+            document.getElementById('kmh').value = parseFloat(kmh.toFixed(2));
+
+            uppdateraSluttider(kmh);
+        }
+
+        // Beräknar och visar alla sluttider
+        function uppdateraSluttider(kmh) {
+            const sekunder5k = (5 / kmh) * 3600;
+            const sekunder10k = (10 / kmh) * 3600;
+            const sekunderHalv = (21.0975 / kmh) * 3600;
+            const sekunderHel = (42.195 / kmh) * 3600;
+
+            document.getElementById('tid5k').textContent = formateraTid(sekunder5k);
+            document.getElementById('tid10k').textContent = formateraTid(sekunder10k);
+            document.getElementById('tidHalv').textContent = formateraTid(sekunderHalv);
+            document.getElementById('tidHel').textContent = formateraTid(sekunderHel);
+        }
+
+        // Återställer resultatkorten vid ogiltig/tom input
+        function nollstallTider() {
+            document.getElementById('tid5k').textContent = "--:--";
+            document.getElementById('tid10k').textContent = "--:--";
+            document.getElementById('tidHalv').textContent = "--:--";
+            document.getElementById('tidHel').textContent = "--:--";
+        }
+
+        // Hjälpfunktion för tidsformatering (hh:mm:ss eller mm:ss)
+        function formateraTid(totalaSekunder) {
+            totalaSekunder = Math.round(totalaSekunder);
+
+            const timmar = Math.floor(totalaSekunder / 3600);
+            const minuter = Math.floor((totalaSekunder % 3600) / 60);
+            const sekunder = totalaSekunder % 60;
+
+            const mStr = minuter < 10 && timmar > 0 ? '0' + minuter : minuter;
+            const sStr = sekunder < 10 ? '0' + sekunder : sekunder;
+
+            if (timmar > 0) {
+                return `${timmar}:${mStr}:${sStr}`;
+            } else {
+                return `${minuter}:${sStr}`;
+            }
+        }
+    </script>
+
+</body>
+</html>
