@@ -22,10 +22,10 @@
 
         .card {
             background: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 450px;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            max-width: 600px;
             width: 100%;
         }
 
@@ -33,27 +33,36 @@
             margin-top: 0;
             color: #333;
             text-align: center;
+            font-size: 28px;
+            margin-bottom: 25px;
         }
 
         .input-group {
-            margin: 15px 0;
+            margin: 20px 0;
         }
 
         label {
             display: block;
-            margin-bottom: 6px;
-            color: #666;
+            margin-bottom: 8px;
+            color: #555;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 16px;
+        }
+
+        .input-with-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         input {
             width: 100%;
-            padding: 10px 12px;
+            padding: 14px 16px;
             border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 18px;
             outline: none;
+            text-align: center;
             transition: border-color 0.2s;
         }
 
@@ -61,41 +70,68 @@
             border-color: #007bff;
         }
 
+        button.step-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background-color 0.2s;
+        }
+
+        button.step-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .pace-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
         .pace-inputs {
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-grow: 1;
         }
 
         .pace-inputs span {
             font-weight: bold;
             color: #666;
+            font-size: 20px;
         }
 
         .times-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 25px;
+            gap: 16px;
+            margin-top: 30px;
         }
 
         .time-card {
             background-color: #f8f9fa;
             border: 1px solid #e9ecef;
-            padding: 12px;
-            border-radius: 6px;
+            padding: 16px;
+            border-radius: 8px;
             text-align: center;
         }
 
         .time-card-title {
-            font-size: 13px;
+            font-size: 15px;
             color: #6c757d;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             font-weight: bold;
         }
 
         .time-card-value {
-            font-size: 18px;
+            font-size: 22px;
             font-weight: bold;
             color: #333;
         }
@@ -109,16 +145,24 @@
         <!-- Input Hastighet -->
         <div class="input-group">
             <label for="kmh">Hastighet (km/h):</label>
-            <input type="number" id="kmh" placeholder="T.ex. 12" step="any" min="0.1" oninput="franKmh()">
+            <div class="input-with-buttons">
+                <button class="step-btn" onclick="andradKmh(-0.5)">-</button>
+                <input type="number" id="kmh" placeholder="T.ex. 12" step="any" min="0.1" oninput="franKmh()">
+                <button class="step-btn" onclick="andradKmh(0.5)">+</button>
+            </div>
         </div>
 
         <!-- Input Tempo (Minuter + Sekunder) -->
         <div class="input-group">
             <label>Tempo (min/km):</label>
-            <div class="pace-inputs">
-                <input type="number" id="paceMin" placeholder="Min" min="0" oninput="franTempo()">
-                <span>:</span>
-                <input type="number" id="paceSek" placeholder="Sek" min="0" max="59" oninput="franTempo()">
+            <div class="input-with-buttons">
+                <button class="step-btn" onclick="andradTempo(1)">-</button> <!-- Snabbare tempo = minus sekunder/minuter -->
+                <div class="pace-inputs">
+                    <input type="number" id="paceMin" placeholder="Min" min="0" oninput="franTempo()">
+                    <span>:</span>
+                    <input type="number" id="paceSek" placeholder="Sek" min="0" max="59" oninput="franTempo()">
+                </div>
+                <button class="step-btn" onclick="andradTempo(-1)">+</button>
             </div>
         </div>
 
@@ -144,6 +188,29 @@
     </div>
 
     <script>
+        // Startvärde vid laddning om man vill (lämnat tomt som tidigare)
+        
+        function andradKmh(val) {
+            let kmhInput = document.getElementById('kmh');
+            let nuvarande = parseFloat(kmhInput.value) || 10;
+            let nytt = nuvarande + val;
+            if (nytt < 0.5) nytt = 0.5;
+            kmhInput.value = Math.round(nytt * 10) / 10;
+            franKmh();
+        }
+
+        function andradTempo(sekunderVal) {
+            let min = parseInt(document.getElementById('paceMin').value) || 5;
+            let sek = parseInt(document.getElementById('paceSek').value) || 0;
+            
+            let totalt = (min * 60) + sek - sekunderVal; // Minus för att plus-knappen ska öka farten (sänka tiden per km)
+            if (totalt < 30) totalt = 30;
+
+            document.getElementById('paceMin').value = Math.floor(totalt / 60);
+            document.getElementById('paceSek').value = totalt % 60;
+            franTempo();
+        }
+
         // Körs när användaren ändrar i km/h-fältet
         function franKmh() {
             const kmhVal = parseFloat(document.getElementById('kmh').value);
@@ -155,12 +222,10 @@
                 return;
             }
 
-            // Räkna ut tempo i sekunder per km
             const totalaSekunderPerKm = (3600 / kmhVal);
             const minuter = Math.floor(totalaSekunderPerKm / 60);
             const sekunder = Math.round(totalaSekunderPerKm % 60);
 
-            // Hantera avrundning uppåt till 60 sekunder
             if (sekunder === 60) {
                 document.getElementById('paceMin').value = minuter + 1;
                 document.getElementById('paceSek').value = 0;
@@ -172,7 +237,7 @@
             uppdateraSluttider(kmhVal);
         }
 
-        // Körs när användaren ändrar i Tempo-fälten (minuter/sekunder)
+        // Körs när användaren ändrar i Tempo-fälten
         function franTempo() {
             const min = parseInt(document.getElementById('paceMin').value) || 0;
             const sek = parseInt(document.getElementById('paceSek').value) || 0;
@@ -185,16 +250,12 @@
                 return;
             }
 
-            // Räkna ut km/h (3600 sekunder på en timme / sekunder per km)
             const kmh = 3600 / totalaSekunderPerKm;
-            
-            // Uppdatera km/h-fältet (avrundat till 2 decimaler)
             document.getElementById('kmh').value = parseFloat(kmh.toFixed(2));
 
             uppdateraSluttider(kmh);
         }
 
-        // Beräknar och visar alla sluttider
         function uppdateraSluttider(kmh) {
             const sekunder5k = (5 / kmh) * 3600;
             const sekunder10k = (10 / kmh) * 3600;
@@ -207,7 +268,6 @@
             document.getElementById('tidHel').textContent = formateraTid(sekunderHel);
         }
 
-        // Återställer resultatkorten vid ogiltig/tom input
         function nollstallTider() {
             document.getElementById('tid5k').textContent = "--:--";
             document.getElementById('tid10k').textContent = "--:--";
@@ -215,7 +275,6 @@
             document.getElementById('tidHel').textContent = "--:--";
         }
 
-        // Hjälpfunktion för tidsformatering (hh:mm:ss eller mm:ss)
         function formateraTid(totalaSekunder) {
             totalaSekunder = Math.round(totalaSekunder);
 
